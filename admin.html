@@ -280,12 +280,11 @@
           <div class="card">
             <h3>Add a photo</h3>
             <p style="color:var(--ink-soft); font-size:0.9rem;">
-              Upload a photo directly, or paste a Google Drive link (sharing must be set to "Anyone with the link").
+              Upload the photo to Google Drive, set sharing to "Anyone with the link", then paste the link below.
             </p>
             <form id="photoForm">
               <div class="field"><label for="photoDate">Date</label><input type="date" id="photoDate" required></div>
-              <div class="field"><label for="photoFile">Upload photo file (optional)</label><input type="file" id="photoFile" accept="image/jpeg, image/png, image/gif, image/webp"></div>
-              <div class="field"><label for="photoUrl">Or paste Google Drive link (optional)</label><input type="url" id="photoUrl" placeholder="https://drive.google.com/file/d/..."></div>
+              <div class="field"><label for="photoUrl">Google Drive link</label><input type="url" id="photoUrl" required placeholder="https://drive.google.com/file/d/..."></div>
               <div class="field"><label for="photoCaption">Caption (optional)</label><input type="text" id="photoCaption"></div>
               <button type="submit" class="btn">Add photo</button>
             </form>
