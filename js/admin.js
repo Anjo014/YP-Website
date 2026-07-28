@@ -969,25 +969,42 @@ async function loadPhotos() {
 document.getElementById('photoForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const msg = document.getElementById('photoMsg');
+  const date = document.getElementById('photoDate').value;
+  const caption = document.getElementById('photoCaption').value;
   const fileInput = document.getElementById('photoFile');
   const file = fileInput.files[0];
+  const photoUrl = document.getElementById('photoUrl').value.trim();
 
-  if (!file) {
-    showMsg(msg, 'Please select a photo to upload.', 'error');
+  if (!file && !photoUrl) {
+    showMsg(msg, 'Please select a photo file OR paste a Google Drive link.', 'error');
     return;
   }
 
-  const reader = new FileReader();
-  reader.readAsDataURL(file);
-  reader.onload = async () => {
+  if (file && photoUrl) {
+    showMsg(msg, 'Please either upload a file OR provide a Google Drive link, not both.', 'error');
+    return;
+  }
+
+  if (file) {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = async () => {
+      try {
+        await Api.post('addPhoto', { date, caption, fileData: reader.result, mimeType: file.type, fileName: file.name });
+        e.target.reset();
+        document.getElementById('photoDate').value = todayStr();
+        showMsg(msg, 'Photo added.', 'success');
+        loadPhotos();
+      } catch (err) {
+        showMsg(msg, err.message, 'error');
+      }
+    };
+    reader.onerror = () => {
+      showMsg(msg, 'Could not read the file.', 'error');
+    };
+  } else if (photoUrl) {
     try {
-      await Api.post('addPhoto', {
-        date: document.getElementById('photoDate').value,
-        caption: document.getElementById('photoCaption').value,
-        fileData: reader.result,
-        mimeType: file.type,
-        fileName: file.name
-      });
+      await Api.post('addPhoto', { date, caption, url: photoUrl });
       e.target.reset();
       document.getElementById('photoDate').value = todayStr();
       showMsg(msg, 'Photo added.', 'success');
@@ -995,12 +1012,8 @@ document.getElementById('photoForm').addEventListener('submit', async (e) => {
     } catch (err) {
       showMsg(msg, err.message, 'error');
     }
-  };
-  reader.onerror = () => {
-    showMsg(msg, 'Could not read the file.', 'error');
-  };
+  }
 });
-
 document.getElementById('adminGalleryGrid').addEventListener('click', async (e) => {
   const target = e.target;
 
