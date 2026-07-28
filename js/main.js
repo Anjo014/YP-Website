@@ -11,11 +11,11 @@ function formatDate(dateStr) {
   return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
-// Turns a Google Drive "share" link into a direct-viewable image URL.
 function toDriveImageUrl(url) {
+  if (!url) return '';
   const match = url.match(/\/d\/([a-zA-Z0-9_-]{25,})/); // Google Drive file IDs are long
   if (match) return `https://lh3.googleusercontent.com/d/${match[1]}`;
-  return url;
+  return url; // Return original URL if it's not a standard Drive link
 }
 
 async function loadAnnouncements() {
@@ -126,5 +126,29 @@ document.getElementById('galleryGrid').addEventListener('click', (e) => {
 
 photoModal.overlay.addEventListener('click', () => photoModal.close());
 
-loadAnnouncements();
-loadGallery();
+/* ---------------- Auto-Sync Polling ---------------- */
+let lastUpdateTimestamp = '0';
+
+async function checkForUpdates() {
+  try {
+    const status = await Api.get('getUpdateStatus');
+    if (status.lastUpdate && status.lastUpdate !== lastUpdateTimestamp) {
+      console.log('Changes detected, reloading data...');
+      lastUpdateTimestamp = status.lastUpdate;
+      // Reload all data for the public page
+      await loadAnnouncements();
+      await loadGallery();
+    }
+  } catch (err) {
+    console.error('Error checking for updates:', err);
+  }
+}
+
+async function initMainPage() {
+  const status = await Api.get('getUpdateStatus');
+  lastUpdateTimestamp = status.lastUpdate || '0';
+  await Promise.all([loadAnnouncements(), loadGallery()]);
+  setInterval(checkForUpdates, 10000); // Check for updates every 10 seconds
+}
+
+initMainPage();
