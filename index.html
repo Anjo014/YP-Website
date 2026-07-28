@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Navotas Young People</title>
+<!-- Favicon and App Icons -->
+<link rel="icon" href="CIN-logo.jpeg" type="image/jpeg">
+<link rel="shortcut icon" href="CIN-logo.jpeg" type="image/jpeg">
+<link rel="apple-touch-icon" href="CIN-logo.jpeg">
+<!-- End Favicon and App Icons -->
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <a href="index.html" class="brand">
+    <svg class="gathering-mark" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="14" cy="20" r="10" fill="#E2793D" opacity="0.85"/>
+      <circle cx="26" cy="20" r="10" fill="#EAF1F6" opacity="0.9"/>
+    </svg>
+    Navotas Young People
+  </a>
+  <nav class="site-nav">
+    <a href="index.html" class="active">Home</a>
+    <a href="#gallery">Gallery</a>
+    <a href="admin.html">Coordinator Login</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <h1>Welcome YP!</h1>
+  <p>ANNOUNCEMENTS | UPDATES | EVENTS | MEMORIES</p>
+</section>
+
+<main>
+  <section class="section" id="upcoming-events">
+    <div class="section-head">
+      <h2>Upcoming Events</h2>
+    </div>
+    <ul class="bulletin" id="upcomingEventsList">
+      <li class="empty-state">Loading events…</li>
+    </ul>
+  </section>
+  <section class="section" id="announcements">
+    <div class="section-head">
+      <h2>Announcements</h2>
+    </div>
+    <ul class="bulletin" id="announcementsList">
+      <li class="empty-state">Loading announcements…</li>
+    </ul>
+  </section>
+
+  <section class="section" id="gallery">
+    <div class="section-head">
+      <h2>Gallery</h2>
+    </div>
+    <div class="gallery-carousel-wrap" id="galleryCarousel">
+      <div class="gallery-carousel-viewport">
+        <div class="gallery-carousel-track" id="galleryGrid">
+          <div class="empty-state">Loading photos…</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- PHOTO LIGHTBOX -->
+<div class="photo-modal-overlay" id="photoModalOverlay">
+  <div class="photo-modal-content">
+    <img id="photoModalImage" src="" alt="">
+    <div id="photoModalCaption" class="caption"></div>
+  </div>
+</div>
+
+<footer class="site-footer">YP NAVOTAS WEBSITE © 2026</footer>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

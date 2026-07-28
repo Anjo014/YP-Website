@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coordinator Dashboard</title>
+<!-- Favicon and App Icons -->
+<link rel="icon" href="CIN-logo.jpeg" type="image/jpeg">
+<link rel="shortcut icon" href="CIN-logo.jpeg" type="image/jpeg">
+<link rel="apple-touch-icon" href="CIN-logo.jpeg">
+<!-- End Favicon and App Icons -->
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .spinner-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+  .spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border-left-color: var(--ember-dark, #E2793D);
+    animation: spin 1s ease infinite;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+</style>
+</head>
+<body>
+
+<div id="loadingSpinner" class="spinner-overlay" style="display: none;">
+  <div class="spinner"></div>
+</div>
+
+<header class="site-header">
+  <a href="index.html" class="brand">
+    <svg class="gathering-mark" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="14" cy="20" r="10" fill="#E2793D" opacity="0.85"/>
+      <circle cx="26" cy="20" r="10" fill="#EAF1F6" opacity="0.9"/>
+    </svg>
+    Navotas Young People
+  </a>
+  <nav class="site-nav">
+    <a href="index.html">Home</a>
+    <span id="headerUser" style="display:none; color:#C9D5E6; font-size:0.9rem;"></span>
+    <a href="#" id="logoutLink" style="display:none;">Log out</a>
+  </nav>
+</header>
+
+<main>
+
+  <!-- LOGIN VIEW -->
+  <div id="loginView" class="login-wrap">
+    <h1>Coordinator Login</h1>
+    <div class="card">
+      <div id="loginMsg"></div>
+      <form id="loginForm">
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" id="username" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn" style="width:100%; justify-content:center;">Log in</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- DASHBOARD VIEW -->
+  <div id="dashboardView" style="display:none;">
+    <div class="section-head" style="border:none; margin-top:32px;">
+      <h2>Coordinator Dashboard</h2>
+    </div>
+
+    <div class="admin-shell">
+      <nav class="admin-tabs">
+        <button data-tab="attendance" class="active">Attendance</button>
+        <button data-tab="announcements">Announcements</button>
+        <button data-tab="minutes">Minutes of the Meeting</button>
+        <button data-tab="statistics">Statistics</button>
+        <button data-tab="photos">Upload Photos</button>
+        <button data-tab="members">Add Records</button>
+        <button data-tab="coordinators">Accounts</button>
+        
+      </nav>
+
+      <div>
+        <!-- ATTENDANCE -->
+        <section class="admin-panel active" id="panel-attendance">
+          <!-- GROUP 1: take attendance -->
+          <div class="card">
+            <h3>Take attendance</h3>
+            <div class="field" style="max-width:220px;">
+              <label for="attendanceDate">Meeting date</label>
+              <input type="date" id="attendanceDate">
+            </div>
+            <div class="field" style="max-width:320px;">
+              <label for="attendanceSearch">Search name</label>
+              <input type="text" id="attendanceSearch" placeholder="Type a name…">
+            </div>
+            <div style="display:flex; gap:16px; align-items:center; margin-bottom:10px; font-size:0.85rem; color:var(--ink-soft);">
+              <span id="attendanceCount"></span>
+              <button type="button" class="text-btn" id="attendanceSelectAllBtn" style="background:none; border:none; color:var(--ember-dark); font-weight:600; cursor:pointer; padding:0;">Select all</button>
+              <button type="button" class="text-btn" id="attendanceClearAllBtn" style="background:none; border:none; color:var(--ink-soft); font-weight:600; cursor:pointer; padding:0;">Clear all</button>
+            </div>
+            <ul class="attendance-list compact" id="attendanceList"></ul>
+            <button class="btn" id="saveAttendanceBtn" style="margin-top:16px;">Save</button>
+            <div id="attendanceMsg"></div>
+          </div>
+
+          <!-- GROUP 2: records of attendance -->
+          <div class="card" style="margin-top:20px;">
+            <h3>Records of attendance</h3>
+            <p style="color:var(--ink-soft); font-size:0.9rem; margin-top:-8px;">Past attendance records.</p>
+            <div class="tab-row" id="pastDatesList"><div class="empty-state">Loading...</div></div>
+          </div>
+
+          <!-- GROUP 3: deleted records -->
+          <div class="card" style="margin-top:20px;">
+            <h3>Deleted records</h3>
+            <p style="color:var(--ink-soft); font-size:0.9rem; margin-top:-8px;">Recover a deleted record, or delete it permanently.</p>
+            <div class="tab-row" id="trashedDatesList"><div class="empty-state">Loading...</div></div>
+          </div>
+        </section>
+
+        <!-- VIEW (read-only) MODAL -->
+        <div class="modal-overlay" id="attendanceViewModalOverlay">
+          <div class="modal-box">
+            <div class="modal-head">
+              <h3 id="attendanceViewModalTitle">Attendance</h3>
+              <button type="button" class="modal-close" id="attendanceViewModalClose" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+              <ul class="attendance-list" id="attendanceViewModalList"></ul>
+            </div>
+            <div class="modal-foot">
+              <button type="button" class="btn secondary" id="attendanceViewModalCloseBtn">Close</button>
+              <button type="button" class="btn" id="attendanceViewModalEditBtn">Edit</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- EDIT MODAL (add / edit / delete attendees) -->
+        <div class="modal-overlay" id="attendanceModalOverlay">
+          <div class="modal-box">
+            <div class="modal-head">
+              <h3 id="attendanceModalTitle">Edit attendance</h3>
+              <button type="button" class="modal-close" id="attendanceModalClose" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div id="attendanceModalMsg"></div>
+              <div class="field" style="margin-bottom:10px;">
+                <label for="attendanceModalSearch">Search attendees</label>
+                <input type="text" id="attendanceModalSearch" placeholder="Type a name…">
+              </div>
+              <ul class="attendance-list" id="attendanceModalList"></ul>
+            </div>
+            <div class="modal-foot">
+              <button type="button" class="btn secondary" id="attendanceModalCloseBtn">Close</button>
+              <button type="button" class="btn" id="attendanceModalSaveBtn">Save changes</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MINUTES -->
+        <section class="admin-panel" id="panel-minutes">
+          <div class="card">
+            <h3>Add minutes</h3>
+            <form id="minutesForm">
+              <div class="field"><label for="minutesDate">Date</label><input type="date" id="minutesDate" required></div>
+              <div class="field"><label for="minutesTitle">Title</label><input type="text" id="minutesTitle" required></div>
+              <div class="field"><label for="minutesContent">Content</label><textarea id="minutesContent" required></textarea></div>
+              <button type="submit" class="btn">Save minutes</button>
+            </form>
+            <div id="minutesMsg"></div>
+          </div>
+
+          <div class="card" style="margin-top:20px;">
+            <h3>Records of minutes</h3>
+            <p style="color:var(--ink-soft); font-size:0.9rem; margin-top:-8px;">Click a title to view it.</p>
+            <div id="minutesListWrap"></div>
+          </div>
+
+          <div class="card" style="margin-top:20px;">
+            <h3>Deleted minutes</h3>
+            <p style="color:var(--ink-soft); font-size:0.9rem; margin-top:-8px;">Recover a deleted minutes, or delete it permanently.</p>
+            <div id="minutesTrashWrap"></div>
+          </div>
+        </section>
+
+        <!-- MINUTES VIEW MODAL -->
+        <div class="modal-overlay" id="minutesViewModalOverlay">
+          <div class="modal-box">
+            <div class="modal-head">
+              <h3 id="minutesViewModalTitle">Minutes</h3>
+              <button type="button" class="modal-close" id="minutesViewModalClose" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div id="minutesViewModalMeta" style="font-size:0.82rem; color:var(--ink-soft); margin-bottom:10px;"></div>
+              <p id="minutesViewModalContent" style="white-space:pre-wrap;"></p>
+            </div>
+            <div class="modal-foot">
+              <button type="button" class="btn secondary" id="minutesViewModalCloseBtn">Close</button>
+              <button type="button" class="btn" id="minutesViewModalEditBtn">Edit</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MINUTES EDIT MODAL -->
+        <div class="modal-overlay" id="minutesEditModalOverlay">
+          <div class="modal-box">
+            <div class="modal-head">
+              <h3>Edit minutes</h3>
+              <button type="button" class="modal-close" id="minutesEditModalClose" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div id="minutesEditModalMsg"></div>
+              <div class="field"><label for="minutesEditDate">Date</label><input type="date" id="minutesEditDate" required></div>
+              <div class="field"><label for="minutesEditTitle">Title</label><input type="text" id="minutesEditTitle" required></div>
+              <div class="field"><label for="minutesEditContent">Content</label><textarea id="minutesEditContent" required></textarea></div>
+            </div>
+            <div class="modal-foot">
+              <button type="button" class="btn secondary" id="minutesEditModalCloseBtn">Cancel</button>
+              <button type="button" class="btn" id="minutesEditModalSaveBtn">Save changes</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ANNOUNCEMENTS -->
+        <section class="admin-panel" id="panel-announcements">
+          <div class="card">
+            <h3>Post announcement</h3>
+            <form id="announcementForm">
+              <div class="field"><label for="annDate">Date</label><input type="date" id="annDate" required></div>
+              <div class="field"><label for="annTitle">Title</label><input type="text" id="annTitle" required></div>
+              <div class="field"><label for="annEventDate">Event Date (optional)</label><input type="date" id="annEventDate"></div>
+              <div class="field"><label for="annContent">Message</label><textarea id="annContent" required></textarea></div>
+              <button type="submit" class="btn">Post announcement</button>
+            </form>
+            <div id="announcementMsg"></div>
+          </div>
+          <div class="card" style="margin-top:20px;">
+            <h3>Posted announcements</h3>
+            <div id="announcementsListWrap"></div>
+          </div>
+        </section>
+
+        <!-- ANNOUNCEMENT EDIT MODAL -->
+        <div class="modal-overlay" id="announcementEditModalOverlay">
+          <div class="modal-box">
+            <div class="modal-head">
+              <h3>Edit announcement</h3>
+              <button type="button" class="modal-close" id="announcementEditModalClose" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div id="announcementEditModalMsg"></div>
+              <div class="field"><label for="annEditDate">Date</label><input type="date" id="annEditDate" required></div>
+              <div class="field"><label for="annEditTitle">Title</label><input type="text" id="annEditTitle" required></div>
+              <div class="field"><label for="annEditEventDate">Event Date (optional)</label><input type="date" id="annEditEventDate"></div>
+              <div class="field"><label for="annEditContent">Message</label><textarea id="annEditContent" required></textarea></div>
+            </div>
+            <div class="modal-foot">
+              <button type="button" class="btn secondary" id="announcementEditModalCloseBtn">Cancel</button>
+              <button type="button" class="btn" id="announcementEditModalSaveBtn">Save changes</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PHOTOS -->
+        <section class="admin-panel" id="panel-photos">
+          <div class="card">
+            <h3>Add a photo</h3>
+            <p style="color:var(--ink-soft); font-size:0.9rem;">
+              Upload the photo to Google Drive, set sharing to "Anyone with the link", then paste the link below.
+            </p>
+            <form id="photoForm">
+              <div class="field"><label for="photoDate">Date</label><input type="date" id="photoDate" required></div>
+              <div class="field"><label for="photoUrl">Google Drive link</label><input type="url" id="photoUrl" required placeholder="https://drive.google.com/file/d/..."></div>
+              <div class="field"><label for="photoCaption">Caption (optional)</label><input type="text" id="photoCaption"></div>
+              <button type="submit" class="btn">Add photo</button>
+            </form>
+            <div id="photoMsg"></div>
+          </div>
+          <div class="card" style="margin-top:20px;">
+            <h3>Gallery</h3>
+            <div id="adminGalleryGrid"></div>
+          </div>
+        </section>
+
+        <!-- MEMBERS -->
+        <section class="admin-panel" id="panel-members">
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <h3>YP Records</h3>
+              <button type="button" class="btn" id="addMemberBtn">Add Record</button>
+            </div>
+            <div id="memberMsg"></div>
+            <table class="data-table" id="membersTable">
+              <thead><tr><th>Name</th><th>District</th><th></th></tr></thead>
+              <tbody id="membersTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- MEMBER ADD/EDIT MODAL -->
+        <div class="modal-overlay" id="memberModalOverlay">
+          <div class="modal-box">
+            <div class="modal-head">
+              <h3 id="memberModalTitle">Add Record</h3>
+              <p style="color:var(--ink-soft); font-size:0.9rem;">
+              Fields with asterisk (*) are required.
+              </p>
+              <button type="button" class="modal-close" id="memberModalClose" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div id="memberModalMsg"></div>
+              <form id="memberModalForm">
+                <div class="field"><label for="memberModalName">Full Name*</label><input type="text" id="memberModalName" required></div>
+                <div class="field">
+                  <label for="memberModalDistrict">District*</label>
+                  <select id="memberModalDistrict" required>
+                    <option value="">Select a district...</option>
+                    <option value="D1">D1</option><option value="D2">D2</option><option value="D3">D3</option>
+                    <option value="D4">D4</option><option value="D5">D5</option>
+                  </select>
+                </div>
+                <div class="field"><label for="memberModalAge">Age (optional)</label><input type="number" id="memberModalAge"></div>
+                <div class="field"><label for="memberModalGradeLevel">Grade Level (optional)</label><input type="text" id="memberModalGradeLevel"></div>
+                <div class="field"><label for="memberModalSchool">School (optional)</label><input type="text" id="memberModalSchool"></div>
+                <div class="field"><label for="memberModalContact">Contact Number (optional)</label><input type="tel" id="memberModalContact"></div>
+              </form>
+            </div>
+            <div class="modal-foot">
+              <button type="button" class="btn secondary" id="memberModalCloseBtn">Cancel</button>
+              <button type="button" class="btn" id="memberModalSaveBtn">Save</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- COORDINATORS -->
+        <section class="admin-panel" id="panel-coordinators">
+          <div class="card">
+            <h3>Coordinator accounts</h3>
+            <form id="coordinatorForm">
+              <div class="field"><label for="coordName">Full Name</label><input type="text" id="coordName" required></div>
+              <div class="field"><label for="coordUsername">Username</label><input type="text" id="coordUsername" required></div>
+              <div class="field"><label for="coordPassword">Password</label><input type="text" id="coordPassword" required></div>
+              <button type="submit" class="btn">Add coordinator</button>
+            </form>
+            <div id="coordinatorMsg"></div>
+            <table class="data-table" id="coordinatorsTable">
+              <thead><tr><th>Name</th><th>Username</th><th></th></tr></thead>
+              <tbody id="coordinatorsTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- STATISTICS -->
+        <section class="admin-panel" id="panel-statistics">
+          <div class="card">
+            <h3>Monthly Attendance by District</h3>
+            <p style="color:var(--ink-soft); font-size:0.9rem; margin-top:-8px;">A summary of total attendees per district for the last two months.</p>
+            <div id="statsCardsWrap" class="stats-cards-grid"></div>
+          </div>
+          <div class="card" style="margin-top:20px;">
+            <h3>Recent Attendance Comparison</h3>
+            <p style="color:var(--ink-soft); font-size:0.9rem; margin-top:-8px;">A line graph comparing attendance per district for the current and previous month.</p>
+            <div id="statsRecentComparisonWrap"></div>
+          </div>
+          <div class="card" style="margin-top:20px;">
+            <h3>Attendance Trends (Past Year)</h3>
+            <p style="color:var(--ink-soft); font-size:0.9rem; margin-top:-8px;">A visual overview of attendance over the current month and the past 11 months.</p>
+            <div id="statsGraphWrap"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- PHOTO LIGHTBOX -->
+<div class="photo-modal-overlay" id="photoModalOverlay">
+  <div class="photo-modal-content">
+    <img id="photoModalImage" src="" alt="">
+    <div id="photoModalCaption" class="caption"></div>
+  </div>
+</div>
+
+<!-- CONFIRMATION MODAL -->
+<div class="modal-overlay" id="confirmModalOverlay">
+  <div class="modal-box" style="max-width: 400px;">
+    <div class="modal-head">
+      <h3 id="confirmModalTitle">Confirm Action</h3>
+      <button type="button" class="modal-close" id="confirmModalClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirmModalMessage"></p>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn secondary" id="confirmModalCancelBtn">Cancel</button>
+      <button type="button" class="btn danger" id="confirmModalConfirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">Navotas Young People | Coordinator Tools</footer>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>
