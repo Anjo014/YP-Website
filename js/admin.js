@@ -164,7 +164,7 @@ document.querySelectorAll('.admin-tabs button').forEach(btn => {
 
 /* ---------------- Init dashboard data ---------------- */
 
-function initDashboardData() {
+async function initDashboardData() {
   document.getElementById('attendanceDate').value = todayStr();
   document.getElementById('minutesDate').value = todayStr();
   document.getElementById('annDate').value = todayStr();
@@ -1140,6 +1140,8 @@ document.getElementById('membersTableBody').addEventListener('click', async (e) 
   if (action === 'removeMember') {
     confirmModal.show('Remove this member?', async () => {
       try {
+        // Prevent removing the last member
+        if (currentMembers.length === 1) throw new Error('Cannot remove the last member.');
         await Api.post('removeMember', { id });
         loadMembers();
       } catch (err) {

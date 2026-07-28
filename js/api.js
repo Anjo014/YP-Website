@@ -23,20 +23,22 @@ const Api = {
   },
 
   async get(action, params = {}) {
-    if (!params.silent) this.showSpinner();
+    this.showSpinner();
     try {
       const qs = new URLSearchParams({ action, token: this.token(), ...params });
       const res = await fetch(`${API_URL}?${qs.toString()}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Request failed');
       return json.data;
-    } finally {
-      if (!params.silent) this.hideSpinner();
+    } catch (err) {
+      throw err;
+    } finally { // Always hide spinner, even if error
+      this.hideSpinner();
     }
   },
 
   async post(action, payload = {}) {
-    if (!payload.silent) this.showSpinner();
+    this.showSpinner();
     try {
       // text/plain avoids a CORS preflight against the Apps Script endpoint
       const res = await fetch(API_URL, {
@@ -47,8 +49,10 @@ const Api = {
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Request failed');
       return json.data;
-    } finally {
-      if (!payload.silent) this.hideSpinner();
+    } catch (err) {
+      throw err;
+    } finally { // Always hide spinner, even if error
+      this.hideSpinner();
     }
   }
 };

@@ -126,29 +126,5 @@ document.getElementById('galleryGrid').addEventListener('click', (e) => {
 
 photoModal.overlay.addEventListener('click', () => photoModal.close());
 
-/* ---------------- Auto-Sync Polling ---------------- */
-let lastUpdateTimestamp = '0';
-
-async function checkForUpdates() {
-  try {
-    const status = await Api.get('getUpdateStatus', { silent: true });
-    if (status.lastUpdate && status.lastUpdate !== lastUpdateTimestamp) {
-      console.log('Changes detected, reloading data...');
-      lastUpdateTimestamp = status.lastUpdate;
-      // Reload all data for the public page
-      await loadAnnouncements();
-      await loadGallery();
-    }
-  } catch (err) {
-    console.error('Error checking for updates:', err);
-  }
-}
-
-async function initMainPage() {
-  const status = await Api.get('getUpdateStatus', { silent: true });
-  lastUpdateTimestamp = status.lastUpdate || '0';
-  await Promise.all([loadAnnouncements(), loadGallery()]);
-  setInterval(checkForUpdates, 10000); // Check for updates every 10 seconds
-}
-
-initMainPage();
+loadAnnouncements();
+loadGallery();

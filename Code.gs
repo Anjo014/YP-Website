@@ -252,7 +252,6 @@ function createCoordinatorAccount(username, password, name) {
 function login(username, password) {
   if (!username || !password) throw new Error('Username and password required');
   const coords = sheetToObjects(SHEETS.COORDINATORS);
-  const match = coords.find(function (c) { return c.username === username; });
   if (!match) throw new Error('Invalid username or password');
   const hash = hashPassword(password, match.salt);
   if (hash !== match.passwordHash) throw new Error('Invalid username or password');
@@ -326,6 +325,10 @@ function getPhotos() {
 
 function addPhoto(body) {
   const session = requireAuth(body.token);
+  if (!body.url) {
+    throw new Error('No Google Drive link provided.');
+  }
+
   const row = {
     id: Utilities.getUuid(),
     date: normalizeDateValue(body.date || new Date()),
@@ -669,7 +672,7 @@ function updateRowById(sheetName, id, updates) {
 function deleteRowById(sheetName, id) {
   const rowIndex = findRowIndexById(sheetName, id);
   if (rowIndex === -1) throw new Error('Record not found: ' + id);
-  getSheet(sheetName).deleteRow(rowIndex);
+  getSheet(sheetName).deleteRow(rowIndex); // No recordChange() here, as it's called by the specific delete functions
   return { deleted: true };
 }
 
