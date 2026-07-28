@@ -969,19 +969,36 @@ async function loadPhotos() {
 document.getElementById('photoForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const msg = document.getElementById('photoMsg');
-  try {
-    await Api.post('addPhoto', {
-      date: document.getElementById('photoDate').value,
-      url: document.getElementById('photoUrl').value,
-      caption: document.getElementById('photoCaption').value
-    });
-    e.target.reset();
-    document.getElementById('photoDate').value = todayStr();
-    showMsg(msg, 'Photo added.', 'success');
-    loadPhotos();
-  } catch (err) {
-    showMsg(msg, err.message, 'error');
+  const fileInput = document.getElementById('photoFile');
+  const file = fileInput.files[0];
+
+  if (!file) {
+    showMsg(msg, 'Please select a photo to upload.', 'error');
+    return;
   }
+
+  const reader = new FileReader();
+  reader.readAsDataURL(file);
+  reader.onload = async () => {
+    try {
+      await Api.post('addPhoto', {
+        date: document.getElementById('photoDate').value,
+        caption: document.getElementById('photoCaption').value,
+        fileData: reader.result,
+        mimeType: file.type,
+        fileName: file.name
+      });
+      e.target.reset();
+      document.getElementById('photoDate').value = todayStr();
+      showMsg(msg, 'Photo added.', 'success');
+      loadPhotos();
+    } catch (err) {
+      showMsg(msg, err.message, 'error');
+    }
+  };
+  reader.onerror = () => {
+    showMsg(msg, 'Could not read the file.', 'error');
+  };
 });
 
 document.getElementById('adminGalleryGrid').addEventListener('click', async (e) => {
