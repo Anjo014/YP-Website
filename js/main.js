@@ -33,7 +33,8 @@ async function loadAnnouncements() {
         <li class="bulletin-item">
           <div class="meta" style="font-weight:600; color:var(--ember-dark);">EVENT ON: ${formatDate(a.eventDate)}</div>
           <h3>${escapeHtml(a.title)}</h3>
-          <p>${escapeHtml(a.content)}</p>
+          <p style="white-space: pre-wrap;">${escapeHtml(a.content)}</p>
+          ${a.link ? `<a href="${a.link}" target="_blank" rel="noopener noreferrer" class="btn" style="margin-top:12px; padding: 6px 16px; font-size: 0.9rem;">Go to Link</a>` : ''}
         </li>
       `).join('');
     } else {
@@ -45,7 +46,8 @@ async function loadAnnouncements() {
       <li class="bulletin-item">
         <div class="meta">${formatDate(a.date)} &middot; posted by ${escapeHtml(a.postedBy)}</div>
         <h3>${escapeHtml(a.title)}</h3>
-        <p>${escapeHtml(a.content)}</p>
+        <p style="white-space: pre-wrap;">${escapeHtml(a.content)}</p>
+        ${a.link ? `<a href="${a.link}" target="_blank" rel="noopener noreferrer" class="btn" style="margin-top:12px; padding: 6px 16px; font-size: 0.9rem;">Go to Link</a>` : ''}
       </li>
     `).join('');
     } else {

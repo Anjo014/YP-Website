@@ -66,9 +66,12 @@
           <label for="username">Username</label>
           <input type="text" id="username" autocomplete="username" required>
         </div>
-        <div class="field">
+        <div class="field" style="position: relative;">
           <label for="password">Password</label>
           <input type="password" id="password" autocomplete="current-password" required>
+          <button type="button" id="togglePasswordBtn" class="icon-btn" style="position: absolute; right: 10px; top: 35px; background: none;" title="Show password" aria-label="Show password">
+            <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
         </div>
         <button type="submit" class="btn" style="width:100%; justify-content:center;">Log in</button>
       </form>
@@ -243,6 +246,7 @@
               <div class="field"><label for="annDate">Date</label><input type="date" id="annDate" required></div>
               <div class="field"><label for="annTitle">Title</label><input type="text" id="annTitle" required></div>
               <div class="field"><label for="annEventDate">Event Date (optional)</label><input type="date" id="annEventDate"></div>
+              <div class="field"><label for="annLink">Link (optional)</label><input type="url" id="annLink" placeholder="e.g., https://forms.gle/..."></div>
               <div class="field"><label for="annContent">Message</label><textarea id="annContent" required></textarea></div>
               <button type="submit" class="btn">Post announcement</button>
             </form>
@@ -266,6 +270,7 @@
               <div class="field"><label for="annEditDate">Date</label><input type="date" id="annEditDate" required></div>
               <div class="field"><label for="annEditTitle">Title</label><input type="text" id="annEditTitle" required></div>
               <div class="field"><label for="annEditEventDate">Event Date (optional)</label><input type="date" id="annEditEventDate"></div>
+              <div class="field"><label for="annEditLink">Link (optional)</label><input type="url" id="annEditLink" placeholder="e.g., https://forms.gle/..."></div>
               <div class="field"><label for="annEditContent">Message</label><textarea id="annEditContent" required></textarea></div>
             </div>
             <div class="modal-foot">
@@ -295,6 +300,24 @@
             <div id="adminGalleryGrid"></div>
           </div>
         </section>
+
+        <!-- PHOTO CAPTION EDIT MODAL -->
+        <div class="modal-overlay" id="photoCaptionModalOverlay">
+          <div class="modal-box">
+            <div class="modal-head">
+              <h3>Edit Photo Caption</h3>
+              <button type="button" class="modal-close" id="photoCaptionModalClose" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div id="photoCaptionModalMsg"></div>
+              <div class="field"><label for="photoCaptionModalInput">Caption</label><input type="text" id="photoCaptionModalInput"></div>
+            </div>
+            <div class="modal-foot">
+              <button type="button" class="btn secondary" id="photoCaptionModalCloseBtn">Cancel</button>
+              <button type="button" class="btn" id="photoCaptionModalSaveBtn">Save Caption</button>
+            </div>
+          </div>
+        </div>
 
         <!-- MEMBERS -->
         <section class="admin-panel" id="panel-members">
@@ -386,6 +409,35 @@
     </div>
   </div>
 </main>
+
+<!-- COORDINATOR EDIT MODAL -->
+<div class="modal-overlay" id="coordinatorEditModalOverlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit My Account</h3>
+      <button type="button" class="modal-close" id="coordinatorEditModalClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="coordinatorEditModalMsg"></div>
+      <form id="coordinatorEditForm">
+        <div class="field"><label for="coordinatorEditName">Full Name</label><input type="text" id="coordinatorEditName" required></div>
+        <div class="field"><label for="coordinatorEditUsername">Username</label><input type="text" id="coordinatorEditUsername" required></div>
+        <button type="submit" class="btn">Save Details</button>
+      </form>
+      <hr style="border:none; border-top:1px solid var(--line); margin: 24px 0;">
+      <h4>Change Password</h4>
+      <form id="coordinatorPasswordForm">
+        <div class="field"><label for="currentPassword">Current Password</label><input type="password" id="currentPassword" required></div>
+        <div class="field"><label for="newPassword">New Password</label><input type="password" id="newPassword" required></div>
+        <div class="field"><label for="confirmPassword">Confirm New Password</label><input type="password" id="confirmPassword" required></div>
+        <button type="submit" class="btn">Change Password</button>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn secondary" id="coordinatorEditModalCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
 
 <!-- PHOTO LIGHTBOX -->
 <div class="photo-modal-overlay" id="photoModalOverlay">

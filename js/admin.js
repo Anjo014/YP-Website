@@ -123,6 +123,17 @@ logoutLink.addEventListener('click', async (e) => {
   showLogin();
 });
 
+document.getElementById('togglePasswordBtn').addEventListener('click', () => {
+  const passwordInput = document.getElementById('password');
+  const eyeIcon = document.getElementById('eyeIcon');
+  const isPassword = passwordInput.type === 'password';
+  passwordInput.type = isPassword ? 'text' : 'password';
+  eyeIcon.innerHTML = isPassword
+    ? `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>` // Eye-off icon
+    : `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>`; // Eye icon
+});
+
+
 /* ---------------- Tabs ---------------- */
 
 document.querySelectorAll('.admin-tabs button').forEach(btn => {
@@ -838,20 +849,23 @@ async function loadAnnouncements() {
   const wrap = document.getElementById('announcementsListWrap');
   try {
     const items = await Api.get('getAnnouncements');
-    wrap.innerHTML = items.length ? items.map(a => `
-      <div style="padding:12px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; gap:12px;">
+    wrap.innerHTML = items.length ? items.map(a => {
+      const isHidden = a.hidden === true || a.hidden === 'TRUE';
+      return `
+      <div style="padding:12px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; gap:12px; ${isHidden ? 'opacity: 0.6;' : ''}">
         <div>
           <div class="meta" style="font-size:0.82rem; color:var(--ink-soft);">${a.date} &middot; ${escapeHtml(a.postedBy)}</div>
           ${a.eventDate ? `<div class="meta" style="font-size:0.82rem; color:var(--ember-dark);">Event on: ${a.eventDate}</div>` : ''}
-          <strong>${escapeHtml(a.title)}</strong>
-          <p style="margin:6px 0 0;">${escapeHtml(a.content)}</p>
+          <strong>${escapeHtml(a.title)} ${isHidden ? '(Hidden)' : ''}</strong>
+          <p style="margin:6px 0 0; white-space: pre-wrap;">${escapeHtml(a.content)}</p>
+          ${a.link ? `<a href="${a.link}" target="_blank" rel="noopener noreferrer" class="btn" style="margin-top:12px; padding: 6px 16px; font-size: 0.9rem;">Go to Link</a>` : ''}
         </div>
         <div class="row-actions" style="height:fit-content; display:flex; gap: 4px;">
           <button type="button" class="icon-btn edit" data-id="${a.id}" data-action="editAnnouncement" title="Edit" aria-label="Edit"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg></button>
           <button type="button" class="icon-btn delete" data-id="${a.id}" data-action="deleteAnnouncement" title="Delete" aria-label="Delete"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
         </div>
       </div>
-    `).join('') : '<p class="empty-state">No announcements posted yet.</p>';
+    `}).join('') : '<p class="empty-state">No announcements posted yet.</p>';
   } catch (err) {
     wrap.innerHTML = `<p class="empty-state">${escapeHtml(err.message)}</p>`;
   }
@@ -865,7 +879,8 @@ document.getElementById('announcementForm').addEventListener('submit', async (e)
       date: document.getElementById('annDate').value,
       title: document.getElementById('annTitle').value,
       content: document.getElementById('annContent').value,
-      eventDate: document.getElementById('annEventDate').value
+      eventDate: document.getElementById('annEventDate').value,
+      link: document.getElementById('annLink').value
     });
     e.target.reset();
     document.getElementById('annDate').value = todayStr();
@@ -894,6 +909,21 @@ document.getElementById('announcementsListWrap').addEventListener('click', async
   if (btn.dataset.action === 'editAnnouncement') {
     openAnnouncementEditModal(btn.dataset.id);
   }
+
+  if (btn.dataset.action === 'toggleVisibility') {
+    const announcementId = btn.dataset.id;
+    const items = await Api.get('getAnnouncements');
+    const announcement = items.find(a => a.id === announcementId);
+    if (!announcement) return;
+
+    const currentlyHidden = announcement.hidden === true || announcement.hidden === 'TRUE';
+    try {
+      await Api.post('updateAnnouncement', { id: announcementId, ...announcement, hidden: !currentlyHidden });
+      loadAnnouncements();
+    } catch (err) {
+      alert(`Could not toggle visibility: ${err.message}`);
+    }
+  }
 });
 
 /* Announcement edit modal */
@@ -913,7 +943,9 @@ async function openAnnouncementEditModal(id) {
     document.getElementById('annEditDate').value = a.date;
     document.getElementById('annEditTitle').value = a.title;
     document.getElementById('annEditEventDate').value = a.eventDate || '';
+    document.getElementById('annEditLink').value = a.link || '';
     document.getElementById('annEditContent').value = a.content;
+    document.getElementById('annEditHidden').checked = a.hidden === true || a.hidden === 'TRUE';
   } catch (err) {
     showMsg(document.getElementById('announcementEditModalMsg'), err.message, 'error');
   }
@@ -931,7 +963,9 @@ document.getElementById('announcementEditModalSaveBtn').addEventListener('click'
       date: document.getElementById('annEditDate').value,
       title: document.getElementById('annEditTitle').value,
       content: document.getElementById('annEditContent').value,
-      eventDate: document.getElementById('annEditEventDate').value
+      eventDate: document.getElementById('annEditEventDate').value,
+      link: document.getElementById('annEditLink').value,
+      hidden: document.getElementById('annEditHidden').checked
     });
     closeAnnouncementEditModal();
     loadAnnouncements();
@@ -957,7 +991,8 @@ async function loadPhotos() {
       <div class="gallery-card">
         <img src="${toDriveImageUrl(p.url)}" alt="${escapeHtml(p.caption || '')}" loading="lazy">
         <div class="cap" style="display:flex; justify-content:space-between; align-items:center; gap: 8px;">
-          <span>${escapeHtml(p.caption || p.date)}</span>
+          <span style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(p.caption || p.date)}</span>
+          <button type="button" class="icon-btn edit" data-id="${p.id}" data-caption="${escapeHtml(p.caption || '')}" data-action="editPhotoCaption" title="Edit Caption" aria-label="Edit Caption"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg></button>
           <button type="button" class="icon-btn delete" data-id="${p.id}" data-action="deletePhoto" title="Delete" aria-label="Delete"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
         </div>
       </div>
@@ -1016,7 +1051,47 @@ document.getElementById('adminGalleryGrid').addEventListener('click', async (e) 
       }
     });
   }
+
+  const editBtn = target.closest('[data-action="editPhotoCaption"]');
+  if (editBtn) {
+    const id = editBtn.dataset.id;
+    const caption = editBtn.dataset.caption;
+    photoCaptionModal.open(id, caption);
+  }
 });
+
+/* Photo Caption Edit Modal Logic */
+const photoCaptionModal = {
+  overlay: document.getElementById('photoCaptionModalOverlay'),
+  input: document.getElementById('photoCaptionModalInput'),
+  msg: document.getElementById('photoCaptionModalMsg'),
+  _id: null,
+  open(id, currentCaption) {
+    this._id = id;
+    this.input.value = currentCaption;
+    this.msg.innerHTML = '';
+    this.overlay.classList.add('open');
+  },
+  close() {
+    this.overlay.classList.remove('open');
+    this._id = null;
+  },
+  async save() {
+    if (!this._id) return;
+    try {
+      await Api.post('updatePhotoCaption', { id: this._id, caption: this.input.value });
+      this.close();
+      loadPhotos();
+    } catch (err) {
+      showMsg(this.msg, err.message, 'error');
+    }
+  }
+};
+
+document.getElementById('photoCaptionModalClose').addEventListener('click', () => photoCaptionModal.close());
+document.getElementById('photoCaptionModalCloseBtn').addEventListener('click', () => photoCaptionModal.close());
+document.getElementById('photoCaptionModalSaveBtn').addEventListener('click', () => photoCaptionModal.save());
+photoCaptionModal.overlay.addEventListener('click', (e) => { if (e.target === photoCaptionModal.overlay) photoCaptionModal.close(); });
 
 /* ---------------- Members ---------------- */
 
@@ -1149,6 +1224,13 @@ document.getElementById('membersTableBody').addEventListener('click', async (e) 
       }
     });
   }
+
+  const editBtn = target.closest('[data-action="editPhotoCaption"]');
+  if (editBtn) {
+    const id = editBtn.dataset.id;
+    const caption = editBtn.dataset.caption;
+    photoCaptionModal.open(id, caption);
+  }
 });
 
 /* ---------------- Coordinators ---------------- */
@@ -1157,11 +1239,19 @@ async function loadCoordinators() {
   const body = document.getElementById('coordinatorsTableBody');
   try {
     const items = await Api.get('getCoordinators');
+    const currentUser = localStorage.getItem('yp_username');
     body.innerHTML = items.map(c => `
       <tr>
         <td>${escapeHtml(c.name)}</td>
         <td>${escapeHtml(c.username)}</td>
-        <td style="text-align:right;"><button type="button" class="icon-btn remove" data-id="${c.id}" data-action="removeCoordinator" title="Remove" aria-label="Remove"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button></td>
+        <td style="text-align:right; display:flex; justify-content:flex-end; gap:4px;">
+          <button type="button" class="icon-btn edit" data-action="editCoordinator" 
+            ${c.username !== currentUser ? 'disabled title="You can only edit your own account."' : 'title="Edit my account"'}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+          </button>
+          <button type="button" class="icon-btn remove" data-id="${c.id}" data-action="removeCoordinator" title="Remove" aria-label="Remove"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
+        </td>
       </tr>
     `).join('');
   } catch (err) {
@@ -1187,14 +1277,83 @@ document.getElementById('coordinatorForm').addEventListener('submit', async (e) 
 });
 
 document.getElementById('coordinatorsTableBody').addEventListener('click', async (e) => {
-  if (e.target.dataset.action === 'removeCoordinator') {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+
+  if (btn.dataset.action === 'removeCoordinator') {
     confirmModal.show('Remove this coordinator account?', async () => {
       try {
-        await Api.post('removeCoordinator', { id: e.target.dataset.id });
+        await Api.post('removeCoordinator', { id: btn.dataset.id });
         loadCoordinators();
       } catch (err) {
         alert(err.message);
       }
     });
+  }
+
+  if (btn.dataset.action === 'editCoordinator') {
+    openCoordinatorEditModal();
+  }
+});
+
+/* Coordinator Edit Modal */
+const coordinatorEditModal = {
+  overlay: document.getElementById('coordinatorEditModalOverlay'),
+  msg: document.getElementById('coordinatorEditModalMsg'),
+  nameInput: document.getElementById('coordinatorEditName'),
+  usernameInput: document.getElementById('coordinatorEditUsername'),
+  detailsForm: document.getElementById('coordinatorEditForm'),
+  passwordForm: document.getElementById('coordinatorPasswordForm'),
+
+  open() {
+    this.msg.innerHTML = '';
+    this.detailsForm.reset();
+    this.passwordForm.reset();
+    this.nameInput.value = localStorage.getItem('yp_name') || '';
+    this.usernameInput.value = localStorage.getItem('yp_username') || '';
+    this.overlay.classList.add('open');
+  },
+  close() {
+    this.overlay.classList.remove('open');
+  }
+};
+
+function openCoordinatorEditModal() {
+  coordinatorEditModal.open();
+}
+
+document.getElementById('coordinatorEditModalClose').addEventListener('click', () => coordinatorEditModal.close());
+document.getElementById('coordinatorEditModalCloseBtn').addEventListener('click', () => coordinatorEditModal.close());
+coordinatorEditModal.overlay.addEventListener('click', (e) => { if (e.target === coordinatorEditModal.overlay) coordinatorEditModal.close(); });
+
+document.getElementById('coordinatorEditForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = coordinatorEditModal.nameInput.value;
+  const username = coordinatorEditModal.usernameInput.value;
+  try {
+    const data = await Api.post('updateMyAccount', { name, username });
+    Api.setSession(Api.token(), data.newName, data.newUsername);
+    showMsg(coordinatorEditModal.msg, 'Account details updated.', 'success');
+    headerUser.textContent = `Signed in as ${data.newName}`;
+    loadCoordinators(); // Refresh list to reflect new name/username
+  } catch (err) {
+    showMsg(coordinatorEditModal.msg, err.message, 'error');
+  }
+});
+
+document.getElementById('coordinatorPasswordForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const currentPassword = document.getElementById('currentPassword').value;
+  const newPassword = document.getElementById('newPassword').value;
+  const confirmPassword = document.getElementById('confirmPassword').value;
+  if (newPassword !== confirmPassword) {
+    return showMsg(coordinatorEditModal.msg, 'New passwords do not match.', 'error');
+  }
+  try {
+    await Api.post('changeMyPassword', { currentPassword, newPassword });
+    showMsg(coordinatorEditModal.msg, 'Password changed successfully.', 'success');
+    e.target.reset();
+  } catch (err) {
+    showMsg(coordinatorEditModal.msg, err.message, 'error');
   }
 });
