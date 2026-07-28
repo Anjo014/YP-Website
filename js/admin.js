@@ -89,6 +89,7 @@ function showDashboard() {
   headerUser.style.display = 'inline';
   headerUser.textContent = `Signed in as ${localStorage.getItem('yp_name') || ''}`;
   logoutLink.style.display = 'inline';
+  if (Api.isLoggedIn()) initAutoSync(); // Start auto-sync only when logged in
   initDashboardData();
 }
 
@@ -164,22 +165,48 @@ document.querySelectorAll('.admin-tabs button').forEach(btn => {
 
 /* ---------------- Init dashboard data ---------------- */
 
-function initDashboardData() {
+let isInitialLoad = true;
+
+async function initDashboardData() {
   document.getElementById('attendanceDate').value = todayStr();
   document.getElementById('minutesDate').value = todayStr();
   document.getElementById('annDate').value = todayStr();
   document.getElementById('photoDate').value = todayStr();
 
-  loadAttendancePanel();
-  loadPastMeetings();
-  loadTrashedMeetings();
-  loadMinutes();
-  loadMinutesTrash();
-  loadAnnouncements();
-  loadPhotos();
-  loadMembers();
-  loadCoordinators();
-  loadStatistics();
+  // Load all data concurrently for faster initial load
+  await Promise.all([
+    loadAttendancePanel(),
+    loadPastMeetings(),
+    loadTrashedMeetings(),
+    loadMinutes(),
+    loadMinutesTrash(),
+    loadAnnouncements(),
+    loadPhotos(),
+    loadMembers(), // Also populates currentMembers
+    loadCoordinators()
+  ]);
+
+  // Load statistics after members are loaded
+  await loadStatistics();
+  isInitialLoad = false;
+}
+
+/* ---------------- Auto-Sync Polling ---------------- */
+let lastUpdateTimestamp = '0';
+
+async function initAutoSync() {
+  const status = await Api.get('getUpdateStatus');
+  lastUpdateTimestamp = status.lastUpdate || '0';
+  setInterval(async () => {
+    const newStatus = await Api.get('getUpdateStatus');
+    if (newStatus.lastUpdate && newStatus.lastUpdate !== lastUpdateTimestamp) {
+      console.log('Changes detected on another device, reloading active tab data...');
+      lastUpdateTimestamp = newStatus.lastUpdate;
+      // Find the active tab and reload its data
+      const activeTab = document.querySelector('.admin-tabs button.active');
+      if (activeTab) activeTab.click();
+    }
+  }, 10000); // Check every 10 seconds
 }
 
 /* ---------------- Attendance ---------------- */
@@ -943,9 +970,10 @@ document.getElementById('announcementEditModalSaveBtn').addEventListener('click'
 /* ---------------- Photos ---------------- */
 
 function toDriveImageUrl(url) {
+  if (!url) return '';
   const match = url.match(/\/d\/([a-zA-Z0-9_-]{25,})/); // Google Drive file IDs are long
   if (match) return `https://lh3.googleusercontent.com/d/${match[1]}`;
-  return url;
+  return url; // Return original URL if it's not a standard Drive link
 }
 
 async function loadPhotos() {
@@ -969,49 +997,18 @@ async function loadPhotos() {
 document.getElementById('photoForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const msg = document.getElementById('photoMsg');
-  const date = document.getElementById('photoDate').value;
-  const caption = document.getElementById('photoCaption').value;
-  const fileInput = document.getElementById('photoFile');
-  const file = fileInput.files[0];
-  const photoUrl = document.getElementById('photoUrl').value.trim();
-
-  if (!file && !photoUrl) {
-    showMsg(msg, 'Please select a photo file OR paste a Google Drive link.', 'error');
-    return;
-  }
-
-  if (file && photoUrl) {
-    showMsg(msg, 'Please either upload a file OR provide a Google Drive link, not both.', 'error');
-    return;
-  }
-
-  if (file) {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = async () => {
-      try {
-        await Api.post('addPhoto', { date, caption, fileData: reader.result, mimeType: file.type, fileName: file.name });
-        e.target.reset();
-        document.getElementById('photoDate').value = todayStr();
-        showMsg(msg, 'Photo added.', 'success');
-        loadPhotos();
-      } catch (err) {
-        showMsg(msg, err.message, 'error');
-      }
-    };
-    reader.onerror = () => {
-      showMsg(msg, 'Could not read the file.', 'error');
-    };
-  } else if (photoUrl) {
-    try {
-      await Api.post('addPhoto', { date, caption, url: photoUrl });
-      e.target.reset();
-      document.getElementById('photoDate').value = todayStr();
-      showMsg(msg, 'Photo added.', 'success');
-      loadPhotos();
-    } catch (err) {
-      showMsg(msg, err.message, 'error');
-    }
+  try {
+    await Api.post('addPhoto', {
+      date: document.getElementById('photoDate').value,
+      url: document.getElementById('photoUrl').value,
+      caption: document.getElementById('photoCaption').value
+    });
+    e.target.reset();
+    document.getElementById('photoDate').value = todayStr();
+    showMsg(msg, 'Photo added.', 'success');
+    loadPhotos();
+  } catch (err) {
+    showMsg(msg, err.message, 'error');
   }
 });
 document.getElementById('adminGalleryGrid').addEventListener('click', async (e) => {
@@ -1170,6 +1167,7 @@ document.getElementById('membersTableBody').addEventListener('click', async (e) 
   if (action === 'removeMember') {
     confirmModal.show('Remove this member?', async () => {
       try {
+        if (currentMembers.length === 1) throw new Error('Cannot remove the last member.');
         await Api.post('removeMember', { id });
         loadMembers();
       } catch (err) {
